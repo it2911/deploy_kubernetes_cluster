@@ -1,7 +1,5 @@
-# deploy_kubernetes_cluster
+# Kubernetesクラスター環境構築学習
 
-You can learn how to create a kubernetes cluster from this repository
+Kubernetesの構築手順書の説明
 
-このRepositoryはKubernetesを構築する手順を詳しく記載しています。<br />
-自動化したい方へ <br />
-*Shellファイルの共有が、cc8602@gmail.com　と連絡してください。*
+[Kubernetes研究Blog](www.it2911.com)
