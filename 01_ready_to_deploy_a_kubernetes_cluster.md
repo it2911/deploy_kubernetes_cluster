@@ -80,5 +80,4 @@ CLUSTER_DNS_DOMAIN="cluster.local."
 
 ``` bash
 $ cp environment.sh /root/local/bin
-$
 ```

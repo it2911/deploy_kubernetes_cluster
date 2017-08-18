@@ -2,4 +2,4 @@
 
 Kubernetesの構築手順書の説明
 
-[Kubernetes研究Blog](www.it2911.com)
+[it2911研究Blog](http://www.it2911.com)
