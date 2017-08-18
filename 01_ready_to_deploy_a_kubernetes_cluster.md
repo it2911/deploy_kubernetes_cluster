@@ -72,7 +72,7 @@ CLUSTER_DNS_SVC_IP="10.254.0.2"
 CLUSTER_DNS_DOMAIN="cluster.local."
 ```
 
-+ 環境変数について定義は [environment.sh](https://github.com/opsnull/follow-me-install-kubernetes-cluster/blob/master/manifests/environment.sh) を参照してください；
++ 環境変数について定義は [environment.sh](https://github.com/it2911/deploy_kubernetes_cluster/blob/master/manifests/environment.sh) を参照してください；
 
 ## 各サーバーに環境配置ファイルを配布する
 
