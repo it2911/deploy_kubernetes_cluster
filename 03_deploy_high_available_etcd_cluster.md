@@ -128,7 +128,7 @@ EOF
 + 通信安全性のため、etcdのキーファイル(cert-fileとkey-file)、Peers 通信証明書と CA 証明書(peer-cert-file、peer-key-file、peer-trusted-ca-file)、クライアントのCA証明書（trusted-ca-file）の指定が必要だ；
 + `--initial-cluster-state` の値は `new` の時、`--name` のパラメータは必ず `--initial-cluster` リストに入れる；
 
-unit ファイルはこのリンクで参考してください：[etcd.service](https://github.com/opsnull/follow-me-install-kubernetes-cluster/blob/master/systemd/etcd.service)
+unit ファイルはこのリンクで参考してください：[etcd.service](https://github.com/it2911/deploy_kubernetes_cluster/blob/master/systemd/etcd.service)
 
 ## etcd サービスを起動する
 

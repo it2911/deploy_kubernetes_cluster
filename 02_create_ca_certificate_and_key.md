@@ -2,7 +2,7 @@
 
 tags: TLS, CA
 
-# Create CA Certificate And Key
+# CA 証明書とキーファイルの作成
 
 `kubernetes` の各コンポーネントは `TLS` 証明書で通信内容を暗号化することが必要だ。今回 `CloudFlare` の PKI ツール [cfssl](https://github.com/cloudflare/cfssl) で Certificate Authority (CA) 証明書とキーファイルを作成する。CA は自己署名証明書、CA証明書を利用してその他サービスの TLS 証明書を作成する。
 
