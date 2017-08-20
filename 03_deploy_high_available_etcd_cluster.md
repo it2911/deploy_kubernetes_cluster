@@ -170,5 +170,5 @@ https://10.64.3.8:2379 is healthy: successfully committed proposal: took = 1.246
 https://10.66.3.86:2379 is healthy: successfully committed proposal: took = 1.509229ms
 ```
 
-三つノード etcd の出力はすべて healthy の場合、クラスターが立ち上げることが成功だ（warning 情報を無視してください）。
+各ノード etcd の出力はすべて healthy の場合、クラスターが立ち上げることが成功だ（warning 情報を無視してください）。
 
