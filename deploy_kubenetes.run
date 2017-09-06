@@ -1,1 +1,255 @@
-#!/usr/bin/bash
+#!/bin/bash
+source ./env
+
+INIT()
+{
+    #1.客户端建立私钥和公钥
+    ssh-keygen -t rsa
+    cat ~/.ssh/id_rsa.pub > ~/.ssh/authorized_keys
+
+    echo "Welcome to use auto deploy kubernetes cluster application. This application is deploied by it2911. If you have anything questions. You cloud commit issue in http://github.com/it2911 ."
+    sleep 10
+    echo "The init appliction will start after 5 seconds."
+    sleep 5
+
+    #判断当前用户是否为root用户
+    user=`whoami`
+    machinename=`uname -m`
+
+    if [ "$user" != "root" ]; then
+        echo "Please run this application in root role."
+        exit 1
+    fi
+
+    #2.ssh服务端配置
+    timedatectl set-timezone $LOCATION
+    #vim /etc/ssh/sshd_config
+    #sed -i "s/#RSAAuthentication yes/RSAAuthentication yes/g" /etc/ssh/sshd_config
+    #sed -i "s/#PubkeyAuthentication yes/PubkeyAuthentication yes/g" /etc/ssh/sshd_config
+    #service sshd restart
+    # 3.分发证书到各个服务器
+    for NODE_IP in "${NODES[@]}"; do
+		echo "Set $NODE_IP timezone"
+		ssh root@$NODE_IP timedatectl set-timezone $LOCATION
+		ssh root@$NODE_IP timedatectl
+		scp -r /root/.ssh root@$NODE_IP:/root/
+		echo "Update $NODE_IP applications"
+		ssh root@$NODE_IP yum -y install vim wget net-tools iptables-services
+		ssh root@$NODE_IP yum -y update
+
+		# 关闭firewalls并且设置iptables的相关内容
+        echo "Node $NODE_IP disable the Firewalld ......"
+		ssh root@$NODE_IP setenforce 0
+		ssh root@$NODE_IP systemctl stop firewalld
+		ssh root@$NODE_IP systemctl disable firewalld
+        echo "Node $NODE_IP reset the iptables ......"
+		ssh root@$NODE_IP systemctl enable iptables
+		ssh root@$NODE_IP "sed -i 's/-A INPUT -j REJECT --reject-with icmp-host-prohibited/#-A INPUT -j REJECT --reject-with icmp-host-prohibited/g' /etc/sysconfig/iptables"
+		ssh root@$NODE_IP "sed -i 's/-A FORWARD -j REJECT --reject-with icmp-host-prohibited/#-A FORWARD -j REJECT --reject-with icmp-host-prohibited/g' /etc/sysconfig/iptables"
+		ssh root@$NODE_IP systemctl start iptables
+		ssh root@$NODE_IP iptables -P FORWARD ACCEPT
+		ssh root@$NODE_IP iptables -F && sudo iptables -X && sudo iptables -F -t nat && sudo iptables -X -t nat
+    done
+}
+
+CREATE_CA()
+{
+    # Create folder
+    echo "Creating SSL folder ......"
+    if [ ! -d /etc/etcd/ssl ]; then
+		mkdir -p /etc/etcd/ssl
+    fi
+
+    if [ ! -d /etc/kubernetes/ssl ]; then
+        mkdir -p /etc/kubernetes/ssl
+    fi
+
+    if [ ! -d /etc/flanneld/ssl ]; then
+        mkdir -p /etc/flanneld/ssl
+    fi
+
+    # Create CA cert and key then copy to cluster node's /etc/kubernetes/ssl folder
+    # Download create ssl tools
+    if [ ! -f  /usr/bin/cfssl ]; then
+	echo -e "Downloading cfssl ......"
+        wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+        chmod +x cfssl_linux-amd64
+        mv cfssl_linux-amd64  /usr/bin/cfssl
+    fi
+
+    if [ ! -f /usr/bin/cfssljson ]; then
+	echo -e "Downloading cfssljson ......"
+        wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+        chmod +x cfssljson_linux-amd64
+        mv cfssljson_linux-amd64  /usr/bin/cfssljson
+    fi
+
+    if [ ! -f  /usr/bin/cfssl-certinfo ]; then
+	echo -e "Downloading cfssl-certinfo ......"
+        wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
+        chmod +x cfssl-certinfo_linux-amd64
+        mv cfssl-certinfo_linux-amd64  /usr/bin/cfssl-certinfo
+    fi
+
+    if [ ! -f  /usr/bin/kubectl ]; then
+	echo -e "Downloading kubectl ......"
+        wget https://dl.k8s.io/v1.6.2/kubernetes-client-linux-amd64.tar.gz
+        tar -xzvf kubernetes-client-linux-amd64.tar.gz
+        chmod +x kubernetes/client/bin/kubectl
+        cp kubernetes/client/bin/kubectl /usr/bin/
+    fi
+
+    #　1.CA 是自签名的证书，用来签名后续创建的其它 TLS 证书。 生成 CA 证书和私钥
+    echo -e "Creating CA ......"
+    cfssl print-defaults config > config.json
+    cfssl print-defaults csr > csr.json
+    cfssl gencert -initca ./ssl/ca-csr.json | cfssljson -bare ca
+    cp ca* /etc/kubernetes/ssl
+
+    # 2.创建 ETCD TLS 秘钥和证书
+    echo -e "Creating ETCD CA and Key ......"
+    sed -e "s/\${NODE_IP}/$MASTER_IP/" ssl/etcd-csr.json > etcd-csr.json
+    cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ssl/ca-config.json -profile=kubernetes etcd-csr.json | cfssljson -bare etcd
+    mv etcd*.pem /etc/etcd/ssl
+    rm -f etcd-csr.json
+
+    # 3.创建 admin 证书签名 用于创建 kubectl kubeconfig 文件，让kubelet可以和Kubeapiserver通信
+    echo -e "Creating Admin CA for create kubectl and kubeconfig file ......"
+    cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ssl/ca-config.json -profile=kubernetes ssl/admin-csr.json | cfssljson -bare admin
+    # 设置集群参数
+    kubectl config set-cluster kubernetes --certificate-authority=ca.pem --embed-certs=true --server=$KUBE_APISERVER
+    # 设置客户端认证参数
+    kubectl config set-credentials admin --client-certificate=admin.pem --embed-certs=true --client-key=admin-key.pem
+    # 设置上下文参数
+    kubectl config set-context kubernetes --cluster=kubernetes --user=admin
+    # 设置默认上下文
+    kubectl config use-context kubernetes
+    mv admin*.pem /etc/kubernetes/ssl/
+
+    # 4.创建 flanneld 证书和私钥
+    echo -e "Creating Flannel CA and Key ......"
+    cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ssl/ca-config.json -profile=kubernetes ssl/flanneld-csr.json | cfssljson -bare flanneld
+    mkdir -p /etc/flanneld/ssl
+    cp flanneld*.pem /etc/flanneld/ssl
+
+    # 5.创建 kubernetes 证书签名请求
+    echo -e "Creating Kubernetes CA and Key ......"
+    sed -e "s/\${MASTER_IP}/$MASTER_IP/" -e "s/\${CLUSTER_KUBERNETES_SVC_IP}/$CLUSTER_KUBERNETES_SVC_IP/" ssl/kubernetes-csr.json > kubernetes-csr.json
+    cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ssl/ca-config.json -profile=kubernetes kubernetes-csr.json | cfssljson -bare kubernetes
+    cp kubernetes*.pem /etc/kubernetes/ssl/
+    cp ssl/token.csv /etc/kubernetes/
+
+    # 6.创建 kube-proxy 相关证书文件
+    echo -e "Creating kube-proxy CA and Key ......"
+    cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ssl/ca-config.json -profile=kubernetes  ssl/kube-proxy-csr.json | cfssljson -bare kube-proxy
+
+	# 设置Node节点
+	for NODE_IP in "${SLAVE_NODES[@]}"; do
+		echo "Copy kubernetes ssl file to slave node $NODE_IP ......"
+		# 1.将生成的 CA 证书、秘钥文件、配置文件拷贝到所有机器的 /etc/kubernetes/ssl 目录下
+		scp -r /etc/kubernetes root@$NODE_IP:/etc/
+
+		# 2.拷贝ETCD TLS 秘钥和证书
+        echo "Copy etcd ssl file to slave node $NODE_IP ......"
+		sed -e "s/\${NODE_IP}/$NODE_IP/" ssl/etcd-csr.json > etcd-csr.json
+		cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ssl/ca-config.json -profile=kubernetes etcd-csr.json | cfssljson -bare etcd
+		ssh root@$NODE_IP mkdir -p /etc/etcd/ssl
+		scp -r etcd*.pem root@$NODE_IP:/etc/etcd/ssl
+		rm -f etcd-csr.json
+
+		# 3.拷贝到运行 kubelet 命令的机器的 ~/.kube/ 目录下
+        echo "Copy kubelet file to slave node $NODE_IP ......"
+		scp -r ~/.kube root@$NODE_IP:~/
+
+		# 4.拷贝 flanneld 证书和私钥
+        echo "Copy flannel file to slave node $NODE_IP ......"
+		scp -r /etc/flanneld root@$NODE_IP:/etc/
+
+		# 6.拷贝 kube-proxy 证书和私钥
+        echo "Copy kube-proxy file to slave node $NODE_IP ......"
+		scp kube-proxy*.pem root@$NODE_IP:/etc/kubernetes/ssl/
+    done
+
+    # Clear Master
+    rm -f config.json csr.json bootstrap.kubeconfig ca* etcd* admin* flanneld* kubernetes* kube-proxy*
+}
+
+DEPLOY_ETCD()
+{
+    ETCD_NODES="etcd-host0=https:\/\/$MASTER_IP:2380,etcd-host1=https:\/\/$SLAVE1_IP:2380,etcd-host2=https:\/\/$SLAVE2_IP:2380"
+
+	# 将生成的 CA 证书、秘钥文件、配置文件拷贝到所有机器的 /etc/kubernetes/ssl 目录下
+	for NODE_NAME in "${!NODES[@]}"; do
+		NODE_IP=${NODES[$NODE_NAME]}
+
+		# 创建 ETCD SERVICE
+		sed -e "s/\${NODE_NAME}/$NODE_NAME/" -e "s/\${NODE_IP}/$NODE_IP/" -e "s/\${ETCD_NODES}/$ETCD_NODES/g" systemd/etcd.service >> etcd.service
+		scp etcd.service root@$NODE_IP:/etc/systemd/system/
+		rm -f etcd.service
+
+		# 下载 ETCD 执行文件并执行
+		ssh root@$NODE_IP mkdir -p /var/lib/etcd
+		ssh root@$NODE_IP systemctl daemon-reload
+		ssh root@$NODE_IP systemctl enable etcd
+		ssh root@$NODE_IP systemctl start etcd &
+	done
+}
+
+CLEAN_CLUSTER()
+{
+    #关闭服务,删除文件
+    for NODE_IP in "${NODES[@]}"; do
+        ssh root@$NODE_IP systemctl stop kubelet kube-proxy flanneld etcd kube-apiserver kube-controller-manager kube-scheduler
+        ssh root@$NODE_IP rm -rf /var/lib/{kubelet,etcd,flanneld,docker}
+        ssh root@$NODE_IP rm -rf /etc/{etcd,flanneld,kubernetes}
+        ssh root@$NODE_IP systemctl stop docker
+        ssh root@$NODE_IP systemctl disable kube-apiserver kube-controller-manager kube-scheduler kubelet docker flanneld etcd
+        ssh root@$NODE_IP rm -rf /etc/systemd/system/{kube-apiserver,kube-controller-manager,kube-scheduler,kubelet,docker,flanneld,etcd}.service
+        ssh root@$NODE_IP rm -rf /var/run/{flannel,kubernetes,docker}
+
+        #清理 kube-proxy 和 docker 创建的 iptables：
+        ssh root@$NODE_IP iptables -F && iptables -X && iptables -F -t nat && iptables -X -t nat
+
+        #删除 flanneld 和 docker 创建的网桥：
+        ssh root@$NODE_IP ip link del flannel.1
+        ssh root@$NODE_IP ip link del docker0
+    done
+}
+
+echo "选择要安装的角色"
+echo "0:INIT"
+echo "1:Create SSL"
+echo "2:Deploy ETCD"
+echo "8:CLEAN CLUSTER"
+echo -n ""Master","Node","add-nodes","traefik","Harbor":  "
+read answer
+    if [ "$answer" == "0" ]; then
+	INIT
+    elif [ "$answer" == "1" ]; then
+        CREATE_CA
+    elif [ "$answer" == "2" ]; then
+        DEPLOY_ETCD
+    elif [ "$answer" == "8" ]; then
+        CLEAN_CLUSTER
+    elif [ "$answer" == "Master" ]; then
+        INSTALL_KUBE
+        FLANNEL_NETWORK
+        Docker
+        Kube_apiserver
+        Node
+        ADD_NODES
+        DNS
+        Dashboard
+        HEAPSTER
+    elif  [ "$answer" == "Node" ]; then
+        INSTALL_KUBE
+        FLANNEL_NETWORK
+        Docker
+        Node
+    elif [ "$answer" == "add-nodes" ]; then
+        ADD_NODES
+    elif [ "$answer" == "traefik" ]; then
+        Traefik
+    elif [ "$answer" == "Harbor" ]; then
+        Harbor
+    fi
