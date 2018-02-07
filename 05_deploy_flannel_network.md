@@ -35,7 +35,7 @@ $ cat > flanneld-csr.json <<EOF
   "names": [
     {
       "C": "JP",
-      "ST": "Tokyo,
+      "ST": "Tokyo",
       "L": "Tokyo",
       "O": "k8s",
       "OU": "System"
