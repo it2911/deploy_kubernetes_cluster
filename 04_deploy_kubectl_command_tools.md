@@ -31,9 +31,9 @@ $ export KUBE_APISERVER="https://${MASTER_IP}:6443"
 ``` bash
 $ wget https://dl.k8s.io/v1.6.2/kubernetes-client-linux-amd64.tar.gz
 $ tar -xzvf kubernetes-client-linux-amd64.tar.gz
-$ sudo cp kubernetes/client/bin/kube* /root/local/bin/
-$ chmod a+x /root/local/bin/kube*
-$ export PATH=/root/local/bin:$PATH
+$ sudo cp kubernetes/client/bin/kube* $HOME/bin/
+$ chmod a+x $HOME/bin/kube*
+$ export PATH=$HOME/bin:$PATH
 ```
 
 ## admin 証明書を作成する
@@ -53,9 +53,9 @@ $ cat admin-csr.json
   },
   "names": [
     {
-      "C": "CN",
-      "ST": "BeiJing",
-      "L": "BeiJing",
+      "C": "JP",
+      "ST": "Tokyo",
+      "L": "Tokyo",
       "O": "system:masters",
       "OU": "System"
     }
@@ -71,7 +71,7 @@ $ cat admin-csr.json
 admin 証明書とキーファイルを作成する：
 
 ``` bash
-$ cfssl gencert -ca=/etc/kubernetes/ssl/ca.pem \
+$ sudo cfssl gencert -ca=/etc/kubernetes/ssl/ca.pem \
   -ca-key=/etc/kubernetes/ssl/ca-key.pem \
   -config=/etc/kubernetes/ssl/ca-config.json \
   -profile=kubernetes admin-csr.json | cfssljson -bare admin
