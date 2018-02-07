@@ -11,21 +11,19 @@ tags: TLS, CA
 ``` bash
 $ wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
 $ chmod +x cfssl_linux-amd64
-$ sudo mv cfssl_linux-amd64 /root/local/bin/cfssl
+$ sudo mv cfssl_linux-amd64 $HOME/bin/cfssl
 
 $ wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
 $ chmod +x cfssljson_linux-amd64
-$ sudo mv cfssljson_linux-amd64 /root/local/bin/cfssljson
+$ sudo mv cfssljson_linux-amd64 $HOME/bin/cfssljson
 
 $ wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
 $ chmod +x cfssl-certinfo_linux-amd64
-$ sudo mv cfssl-certinfo_linux-amd64 /root/local/bin/cfssl-certinfo
+$ sudo mv cfssl-certinfo_linux-amd64 $HOME/bin/cfssl-certinfo
 
-$ export PATH=/root/local/bin:$PATH
+$ export PATH=$HOME/bin:$PATH
 $ mkdir ssl
 $ cd ssl
-$ cfssl print-defaults config > config.json
-$ cfssl print-defaults csr > csr.json
 $
 ```
 
@@ -72,9 +70,9 @@ $ cat ca-csr.json
   },
   "names": [
     {
-      "C": "CN",
-      "ST": "BeiJing",
-      "L": "BeiJing",
+      "C": "JP",
+      "ST": "Tokyo",
+      "L": "Tokyo",
       "O": "k8s",
       "OU": "System"
     }
@@ -156,9 +154,9 @@ $ cfssl-certinfo -cert kubernetes.pem
     "locality": "BeiJing",
     "province": "BeiJing",
     "names": [
-      "CN",
-      "BeiJing",
-      "BeiJing",
+      "JP",
+      "Tokyo",
+      "Tokyo",
       "k8s",
       "System",
       "kubernetes"
@@ -166,11 +164,11 @@ $ cfssl-certinfo -cert kubernetes.pem
   },
   "issuer": {
     "common_name": "Kubernetes",
-    "country": "CN",
+    "country": "JP",
     "organization": "k8s",
     "organizational_unit": "System",
-    "locality": "BeiJing",
-    "province": "BeiJing",
+    "locality": "Tokyo",
+    "province": "Tokyo",
     "names": [
       "CN",
       "BeiJing",
