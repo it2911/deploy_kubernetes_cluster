@@ -22,7 +22,7 @@ $ export NODE_IPS="10.64.3.7 10.64.3.8 10.66.3.86" # etcd クラスターのす�
 $ # etcd クラスター通信用のIPとポートを設定する
 $ export ETCD_NODES=etcd-host0=https://10.64.3.7:2380,etcd-host1=https://10.64.3.8:2380,etcd-host2=https://10.66.3.86:2380
 $ # その他のグローバル環境変数をインポートする：ETCD_ENDPOINTS、FLANNEL_ETCD_PREFIX、CLUSTER_CIDR
-$ source /root/local/bin/environment.sh
+$ source $HOME/bin/environment.sh
 $
 ```
 
@@ -33,7 +33,7 @@ $
 ``` bash
 $ wget https://github.com/coreos/etcd/releases/download/v3.1.6/etcd-v3.1.6-linux-amd64.tar.gz
 $ tar -xvf etcd-v3.1.6-linux-amd64.tar.gz
-$ sudo mv etcd-v3.1.6-linux-amd64/etcd* /root/local/bin
+$ sudo mv etcd-v3.1.6-linux-amd64/etcd* $HOME/bin
 $
 ```
 
@@ -57,9 +57,9 @@ $ cat > etcd-csr.json <<EOF
   },
   "names": [
     {
-      "C": "CN",
-      "ST": "BeiJing",
-      "L": "BeiJing",
+      "C": "JP",
+      "ST": "Tokyo",
+      "L": "Tokyo",
       "O": "k8s",
       "OU": "System"
     }
@@ -99,7 +99,7 @@ Documentation=https://github.com/coreos
 [Service]
 Type=notify
 WorkingDirectory=/var/lib/etcd/
-ExecStart=/root/local/bin/etcd \\
+ExecStart=$HOME/bin/etcd \\
   --name=${NODE_NAME} \\
   --cert-file=/etc/etcd/ssl/etcd.pem \\
   --key-file=/etc/etcd/ssl/etcd-key.pem \\
@@ -151,7 +151,7 @@ etcd クラスター環境をデプロイしたら、いずれ etcd ノードで
 
 ``` bash
 $ for ip in ${NODE_IPS}; do
-  ETCDCTL_API=3 /root/local/bin/etcdctl \
+  ETCDCTL_API=3 sudo $HOME/bin/etcdctl \
   --endpoints=https://${ip}:2379  \
   --cacert=/etc/kubernetes/ssl/ca.pem \
   --cert=/etc/etcd/ssl/etcd.pem \
