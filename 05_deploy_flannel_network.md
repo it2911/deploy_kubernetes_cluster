@@ -13,7 +13,7 @@ kubernetes クラスターの各ノードは Pod のネットワークに経由�
 ``` bash
 $ export NODE_IP=10.64.3.7 # 当該ノードの IP アドレス
 $ # その他インポートグローバル変数：ETCD_ENDPOINTS、FLANNEL_ETCD_PREFIX、CLUSTER_CIDR
-$ source /root/local/bin/environment.sh
+$ source $HOME/bin/environment.sh
 $
 ```
 
@@ -34,9 +34,9 @@ $ cat > flanneld-csr.json <<EOF
   },
   "names": [
     {
-      "C": "CN",
-      "ST": "BeiJing",
-      "L": "BeiJing",
+      "C": "JP",
+      "ST": "Tokyo,
+      "L": "Tokyo",
       "O": "k8s",
       "OU": "System"
     }
@@ -50,7 +50,7 @@ EOF
 flanneld 証明書とキーファイルを作成する：
 
 ``` bash
-$ cfssl gencert -ca=/etc/kubernetes/ssl/ca.pem \
+$ sudo cfssl gencert -ca=/etc/kubernetes/ssl/ca.pem \
   -ca-key=/etc/kubernetes/ssl/ca-key.pem \
   -config=/etc/kubernetes/ssl/ca-config.json \
   -profile=kubernetes flanneld-csr.json | cfssljson -bare flanneld
@@ -66,7 +66,7 @@ $ rm flanneld.csr  flanneld-csr.json
 注意：当該コマンドの実行はFlannel ネットワークの**初期化する時のみ**に行う、この後、その他ノードで Flannel をデプロイする時、**関連情報の再度書き込む必要がない**。
 
 ``` bash
-$ /root/local/bin/etcdctl \
+$ sudo $HOME/bin/etcdctl \
   --endpoints=${ETCD_ENDPOINTS} \
   --ca-file=/etc/kubernetes/ssl/ca.pem \
   --cert-file=/etc/flanneld/ssl/flanneld.pem \
@@ -103,13 +103,13 @@ Before=docker.service
 
 [Service]
 Type=notify
-ExecStart=/root/local/bin/flanneld \\
+ExecStart=$HOME/bin/flanneld \\
   -etcd-cafile=/etc/kubernetes/ssl/ca.pem \\
   -etcd-certfile=/etc/flanneld/ssl/flanneld.pem \\
   -etcd-keyfile=/etc/flanneld/ssl/flanneld-key.pem \\
   -etcd-endpoints=${ETCD_ENDPOINTS} \\
   -etcd-prefix=${FLANNEL_ETCD_PREFIX}
-ExecStartPost=/root/local/bin/mk-docker-opts.sh -k DOCKER_NETWORK_OPTIONS -d /run/flannel/docker
+ExecStartPost=$HOME/bin/mk-docker-opts.sh -k DOCKER_NETWORK_OPTIONS -d /run/flannel/docker
 Restart=on-failure
 
 [Install]
@@ -146,7 +146,7 @@ $ ifconfig flannel.1
 
 ``` bash
 $ # クラスター Pod ネットワーク(/16)の情報を確認する
-$ /root/local/bin/etcdctl \
+$ sudo $HOME/bin/etcdctl \
   --endpoints=${ETCD_ENDPOINTS} \
   --ca-file=/etc/kubernetes/ssl/ca.pem \
   --cert-file=/etc/flanneld/ssl/flanneld.pem \
@@ -154,7 +154,7 @@ $ /root/local/bin/etcdctl \
   get ${FLANNEL_ETCD_PREFIX}/config
 { "Network": "172.30.0.0/16", "SubnetLen": 24, "Backend": { "Type": "vxlan" } }
 $ # 振り分ける Pod 子ネットワーク(/24)のリストを確認する
-$ /root/local/bin/etcdctl \
+$ sudo $HOME/bin/etcdctl \
   --endpoints=${ETCD_ENDPOINTS} \
   --ca-file=/etc/kubernetes/ssl/ca.pem \
   --cert-file=/etc/flanneld/ssl/flanneld.pem \
@@ -162,7 +162,7 @@ $ /root/local/bin/etcdctl \
   ls ${FLANNEL_ETCD_PREFIX}/subnets
 /kubernetes/network/subnets/172.30.19.0-24
 $ # ある Pod ネットワークの flanneld の IP とネットワークパラメータを確認する
-$ /root/local/bin/etcdctl \
+$ sudo $HOME/bin/etcdctl \
   --endpoints=${ETCD_ENDPOINTS} \
   --ca-file=/etc/kubernetes/ssl/ca.pem \
   --cert-file=/etc/flanneld/ssl/flanneld.pem \
@@ -176,7 +176,7 @@ $ /root/local/bin/etcdctl \
 **各ノードでFlannelのデプロイが完成済み**、Pod の子ネットワークリスト(/24)を確認する
 
 ``` bash
-$ /root/local/bin/etcdctl \
+$ sudo $HOME/bin/etcdctl \
   --endpoints=${ETCD_ENDPOINTS} \
   --ca-file=/etc/kubernetes/ssl/ca.pem \
   --cert-file=/etc/flanneld/ssl/flanneld.pem \
