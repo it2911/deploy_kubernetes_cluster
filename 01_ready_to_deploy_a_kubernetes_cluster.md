@@ -79,5 +79,5 @@ CLUSTER_DNS_DOMAIN="cluster.local."
 **すべて**機器(マシン) `/root/local/bin` フォルダにグローバル変数設定ファイルを置く：
 
 ``` bash
-$ cp environment.sh /root/local/bin
+$ cp environment.sh $HOME/bin
 ```
