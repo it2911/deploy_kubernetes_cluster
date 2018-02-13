@@ -2,7 +2,7 @@
 
 tags: flanneld
 
-# Flannel ネットワークをデプロイする
+# Flannel ネットワークのデプロイ
 
 kubernetes クラスターの各ノードは Pod のネットワークに経由で通信できる、**すべてノード** (Master、Node)で Flannel を利用して Pod のネットワークを構築する。
 
