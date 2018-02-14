@@ -30,7 +30,7 @@ $ source $HOME/bin/environment.sh
 $
 ```
 
-## 最新版Kubernetesファイルのダウンロード
+## 最新版Kubernetes実行ファイルダウンロード
 
 下記が２つダウンロード方式がある(2を勧める)：
 
@@ -105,7 +105,7 @@ EOF
 ```
 
 + もし hosts の設定内容が空文字じゃなければ、当該証明書が使える **IP 若くは ドメイン 一覧** を指定しなければいけない。なので、上記のファイルに master サーバーの IPアドレスを書き込んてる；
-+ 还需要添加 kube-apiserver 注册的名为 `kubernetes` 的服务 IP (Service Cluster IP)，一般的には kube-apiserver `--service-cluster-ip-range` で指定するIP Rangeの**一番目IPアドレス**，例) "10.254.0.1"；
++ kube-apiserver で登録名が `kubernetes` の IP アドレス(Service Cluster IP)の追加が必要、一般的には kube-apiserver `--service-cluster-ip-range` で指定するIP Rangeの**一番目IPアドレス**，例) "10.254.0.1"；
 
   ``` bash
   $ kubectl get svc kubernetes
