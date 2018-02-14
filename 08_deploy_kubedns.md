@@ -77,10 +77,6 @@ $ diff kubedns-controller.yaml.base kubedns-controller.yaml
 <         - --server=/__PILLAR__DNS__DOMAIN__/127.0.0.1#10053
 ---
 >         - --server=/cluster.local./127.0.0.1#10053
-148c148
-<         image: gcr.io/google_containers/k8s-dns-sidecar-amd64:1.14.1
----
->         image: xuejipeng/k8s-dns-sidecar-amd64:v1.14.1
 161,162c161,162
 <         - --probe=kubedns,127.0.0.1:10053,kubernetes.default.svc.__PILLAR__DNS__DOMAIN__,5,A
 <         - --probe=dnsmasq,127.0.0.1:53,kubernetes.default.svc.__PILLAR__DNS__DOMAIN__,5,A
