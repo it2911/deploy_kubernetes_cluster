@@ -12,9 +12,9 @@ Kubernetesの構築手順書の説明
 6. [Kubenetes Master Nodeのデプロイ](./06_deploy_kubernetes_master.md)
 7. [Kubenetes Slave Nodeのデプロイ](./07_deploy_kubernetes_worker.md)  
 8. [DNS プラグインのデプロイ](./08_deploy_kubedns.md)  
-9. Dashboard プラグインのデプロイ  
-10. Heapster プラグインのデプロイ  
-11. EFK プラグインのデプロイ  
+9. [Dashboard プラグインのデプロイ](./09_deploy_dashborad.md)  
+10. [Heapster プラグインのデプロイ](./10_deploy_heapster.md)
+11. [EFK プラグインのデプロイ](./11_deploy_efk.md)
 12. Docker Registry プラグインのデプロイ  
 13. Harbor プラグインのデプロイ  
 14. クラスタークリア  
