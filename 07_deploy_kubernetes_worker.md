@@ -16,12 +16,12 @@ kubernetes Node サーバーが下記のコンポーネントを含めてる：
 今回利用する変数が下記になる：
 
 ``` bash
-$ # 替换为 kubernetes master 集群任一机器 IP
+$ # MASTER IP
 $ export MASTER_IP=10.64.3.7
 $ export KUBE_APISERVER="https://${MASTER_IP}:6443"
-$ # 当前部署的节点 IP
+$ # デプロイ IP アドレス
 $ export NODE_IP=10.64.3.7
-$ # 导入用到的其它全局变量：ETCD_ENDPOINTS、FLANNEL_ETCD_PREFIX、CLUSTER_CIDR、CLUSTER_DNS_SVC_IP、CLUSTER_DNS_DOMAIN、SERVICE_CIDR
+$ # ETCD_ENDPOINTS、FLANNEL_ETCD_PREFIX、CLUSTER_CIDR、CLUSTER_DNS_SVC_IP、CLUSTER_DNS_DOMAIN、SERVICE_CIDR 変数を導入する
 $ source /root/local/bin/environment.sh
 $
 ```
@@ -34,51 +34,22 @@ $
 
 dockerのインストールが[Docker社のインストールドキュメント](https://docs.docker.com/install/)を参考することを勧める
 
-### 最新版docker実行ファイルダウンロード
+dockerをインストールしたら、docker.serviceの修正が必要です。dockerのネットワーク情報をflannelから取得しているので、flannelのネット環境変数を設定してください。
 
-``` bash
-$ wget https://get.docker.com/builds/Linux/x86_64/docker-17.04.0-ce.tgz
-$ tar -xvf docker-17.04.0-ce.tgz
-$ cp docker/docker* $HOME/bin
-$ cp docker/completion/bash/docker /etc/bash_completion.d/
-$
-```
+  ``` bash
+  $ diff /usr/lib/systemd/system/docker.service.old /usr/lib/systemd/system/docker.service
+  7a8
+  > EnvironmentFile=-/run/flannel/docker
+  12c13
+  < ExecStart=/usr/bin/dockerd
+  ---
+  > ExecStart=/usr/bin/dockerd --log-level=error $DOCKER_NETWORK_OPTIONS
+  ```
 
-### docker の systemd unit ファイルを作成する
-
-``` bash
-$ cat docker.service
-[Unit]
-Description=Docker Application Container Engine
-Documentation=http://docs.docker.io
-
-[Service]
-Environment="PATH=$HOME/bin:/bin:/sbin:/usr/bin:/usr/sbin"
-EnvironmentFile=-/run/flannel/docker
-ExecStart=$HOME/bin/dockerd --log-level=error $DOCKER_NETWORK_OPTIONS
-ExecReload=/bin/kill -s HUP $MAINPID
-Restart=on-failure
-RestartSec=5
-LimitNOFILE=infinity
-LimitNPROC=infinity
-LimitCORE=infinity
-Delegate=yes
-KillMode=process
-
-[Install]
-WantedBy=multi-user.target
-```
-
-+ dockerd 运行时会调用其它 docker 命令，如 docker-proxy，所以需要将 docker 命令所在的目录加到 PATH 环境变量中；
-+ flanneld 启动时将网络配置写入到 `/run/flannel/docker` 文件中的变量 `DOCKER_NETWORK_OPTIONS`，dockerd 命令行上指定该变量值来设置 docker0 网桥参数；
-+ 如果指定了多个 `EnvironmentFile` 选项，则必须将 `/run/flannel/docker` 放在最后(确保 docker0 使用 flanneld 生成的 bip 参数)；
-+ 不能关闭默认开启的 `--iptables` 和 `--ip-masq` 选项；
-+ 如果内核版本比较新，建议使用 `overlay` 存储驱动；
-+ docker 从 1.13 版本开始，可能将 **iptables FORWARD chain的默认策略设置为DROP**，从而导致 ping 其它 Node 上的 Pod IP 失败，遇到这种情况时，需要手动设置策略为 `ACCEPT`：
+docker バージョンが 1.13 から、**iptables FORWARD chainのデフォルトポリシーがDROPを設定したので**、その他のNodeのPod IPに ping を実行したら、通信できなくなった。その場合、手動でポリシーを `ACCEPT` に設定してください。
 
   ``` bash
   $ sudo iptables -P FORWARD ACCEPT
-  $
   ```
   サーバーが再起動するなら、**iptables FORWARD chainのデフォルト設定ポリシーがDROPに戻ること**を防止するため、下記のコマンドを/etc/rc.localファイルに書き込む。
   
@@ -86,19 +57,11 @@ WantedBy=multi-user.target
   sleep 60 && /sbin/iptables -P FORWARD ACCEPT
   ```
 
-full unit が [docker.service](./systemd/docker.service)を参考してください。
-
 ### dockerd起動する
 
 ``` bash
-$ sudo cp docker.service /etc/systemd/system/docker.service
-$ sudo systemctl daemon-reload
-$ sudo systemctl stop firewalld
-$ sudo systemctl disable firewalld
 $ sudo iptables -F && sudo iptables -X && sudo iptables -F -t nat && sudo iptables -X -t nat
-$ sudo systemctl enable docker
 $ sudo systemctl start docker
-$
 ```
 
 + firewalld(centos7)/ufw(ubuntu16.04)を必ずクローズしてください。クローズしなければ、iptables 規則が重複に作成する
@@ -108,7 +71,6 @@ $
 
 ``` bash
 $ docker version
-$
 ```
 
 ## kubelet のインストールと配置

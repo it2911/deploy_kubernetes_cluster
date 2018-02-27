@@ -32,20 +32,7 @@ $
 
 ## 最新版Kubernetes実行ファイルダウンロード
 
-下記が２つダウンロード方式がある(2を勧める)：
-
-1. [github release ページ](https://github.com/kubernetes/kubernetes/releases) から tarball をダウンロードして、その後、ダウンロードファイルを解凍する
-
-    ``` shell
-    $ wget https://github.com/kubernetes/kubernetes/releases/download/v1.6.2/kubernetes.tar.gz
-    $ tar -xzvf kubernetes.tar.gz
-    ...
-    $ cd kubernetes
-    $ ./cluster/get-kube-binaries.sh
-    ...
-    ```
-
-2. [`CHANGELOG`ページ](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md)から `client` または `server` tarball ファイルをダウンロードして
+[`CHANGELOG`ページ](https://github.com/kubernetes/kubernetes/blob/master/CHANGELOG.md)から `client` または `server` tarball ファイルをダウンロードして
 
     `server` の tarball `kubernetes-server-linux-amd64.tar.gz` はすでに `client`(`kubectl`) ファイルを含めてるので、`kubernetes-client-linux-amd64.tar.gz`を再度ダウンロードする必要がなかった
 

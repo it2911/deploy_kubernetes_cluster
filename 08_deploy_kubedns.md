@@ -92,6 +92,14 @@ $ diff kubedns-controller.yaml.base kubedns-controller.yaml
 + `--domain` は [クラスター変数ドキュメント](01-environment.md) の `CLUSTER_DNS_DOMAIN` 値；
 + システムですでにある RoleBinding の `kube-dns` ServiceAccount，当該のアカウントが kube-apiserver DNS に関する API へアクセス権限を振り分けた。
 
+## kubedns-sa.yaml
+kubednsのservice account設定ファイルでnamespaceの設定を漏れたので、追加する
+``` bash
+$ diff kubedns-sa.yaml.old kubedns-sa.yaml
+4a5
+>   namespace: kube-system
+```
+
 ## Yamlファイルのデプロイ
 
 ``` bash
