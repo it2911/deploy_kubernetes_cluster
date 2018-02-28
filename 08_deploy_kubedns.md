@@ -181,3 +181,31 @@ PING kube-dns.kube-system.svc.cluster.local (10.254.0.2): 48 data bytes
 ^C--- kube-dns.kube-system.svc.cluster.local ping statistics ---
 1 packets transmitted, 0 packets received, 100% packet loss
 ```
+
+nslookupを利用できるため、busybox Podをデプロイする
+
+    ```bash
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      name: busybox
+      namespace: default
+    spec:
+      containers:
+      - name: busybox
+        image: busybox
+        command:
+          - sleep
+          - "3600"
+        imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+    ```
+    
+kubernetes.defaultドメインで記録があるDNSサーバー情報を表示する
+
+    $ kubectl exec -ti busybox -- nslookup kubernetes.default
+    Server:    10.0.0.10
+    Address 1: 10.0.0.10
+    
+    Name:      kubernetes.default
+    Address 1: 10.0.0.1
